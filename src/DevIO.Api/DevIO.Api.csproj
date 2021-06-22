@@ -5,6 +5,14 @@
     <ProjectReference Include="..\DevIO.Business\DevIO.Business.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="8.1.1" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
