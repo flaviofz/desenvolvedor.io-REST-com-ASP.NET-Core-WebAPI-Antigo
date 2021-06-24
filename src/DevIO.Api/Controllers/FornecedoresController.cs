@@ -12,18 +12,22 @@ namespace DevIO.Api.Controllers
     [Route("api/[controller]")]
     public  class FornecedoresController : MainController
     {
-        private readonly IFornecedorRepository _fornecedorRespository;
-        private readonly IFornecedorService _fornecedorService;
         private readonly IMapper _mapper;
+        private readonly IFornecedorRepository _fornecedorRespository;
+        private readonly IEnderecoRepository _enderecoRespository;
+        private readonly IFornecedorService _fornecedorService;
 
         public FornecedoresController(
+            IMapper mapper,
+            INotificador notificador,
             IFornecedorRepository fornecedorRespository,
-            IMapper mapper, 
-            IFornecedorService fornecedorService)
+            IEnderecoRepository enderecoRespository,
+            IFornecedorService fornecedorService) : base(notificador)
         {
-            _fornecedorRespository = fornecedorRespository;
             _mapper = mapper;
-            _fornecedorService = fornecedorService;
+            _fornecedorRespository = fornecedorRespository;
+            _enderecoRespository = enderecoRespository;
+            _fornecedorService = fornecedorService;            
         }
 
         [HttpGet]
@@ -31,7 +35,7 @@ namespace DevIO.Api.Controllers
         {
             var fornecedores = _mapper.Map<IEnumerable<FornecedorViewModel>>(await _fornecedorRespository.ObterTodos());
 
-            return Ok(fornecedores);
+            return CustomResponse(fornecedores);
         }
 
         [HttpGet("{id:guid}")]
@@ -41,49 +45,68 @@ namespace DevIO.Api.Controllers
 
             if (fornecedor == null) return NotFound();
 
-            return Ok(fornecedor);
+            return CustomResponse(fornecedor);
         }
+
+        [HttpGet("obter-endereco/{id:guid}")]
+        public async Task<ActionResult<EnderecoViewModel>> ObterEnderecoPorId(Guid id)
+        {
+            return CustomResponse(_mapper.Map<EnderecoViewModel>(await _enderecoRespository.ObterEnderecoPorFornecedor(id)));
+        }        
 
         [HttpPost]
         public async Task<ActionResult<FornecedorViewModel>> Adicionar(FornecedorViewModel fornecedorViewModel)
         {
-            if(!ModelState.IsValid) return BadRequest();
+            if(!ModelState.IsValid) return CustomResponse(ModelState);
 
-            var fornecedor = _mapper.Map<Fornecedor>(fornecedorViewModel);
-            var result = await _fornecedorService.Adicionar(fornecedor);
+            await _fornecedorService.Adicionar(_mapper.Map<Fornecedor>(fornecedorViewModel));
 
-            if(!result) return BadRequest();
-
-            return Ok();
+            return CustomResponse(fornecedorViewModel);
         }
 
         [HttpPut("{id:guid}")] // A partir do 2.1 já entende que está recebendo da rota e do body
         public async Task<ActionResult<FornecedorViewModel>> Atualizar(Guid id, FornecedorViewModel fornecedorViewModel)
         {
-            if (id != fornecedorViewModel.Id) return BadRequest();
+            if (id != fornecedorViewModel.Id)
+            {
+                NotificarErro("O Id da query é diferente do Id do body");
+                return CustomResponse(fornecedorViewModel);
+            }
 
-            if(!ModelState.IsValid) return BadRequest();
+            if(!ModelState.IsValid) return CustomResponse(ModelState);
 
-            var fornecedor = _mapper.Map<Fornecedor>(fornecedorViewModel);
-            var result  = await _fornecedorService.Atualizar(fornecedor);
+            await _fornecedorService.Atualizar(_mapper.Map<Fornecedor>(fornecedorViewModel));
 
-            if(!result) return BadRequest();
+            return CustomResponse(fornecedorViewModel);
+        }
 
-            return Ok();
+        [HttpPut("atualizar-endereco/{id:guid}")]
+        public async Task<ActionResult<EnderecoViewModel>> AtualizarEndereco(Guid id, EnderecoViewModel enderecoViewModel)
+        {
+            if (id != enderecoViewModel.Id)
+            {
+                NotificarErro("O Id da query é diferente do Id do body");
+                return CustomResponse(enderecoViewModel);
+            }
+
+            if(!ModelState.IsValid) return CustomResponse(ModelState);
+
+            var endereco = _mapper.Map<Endereco>(enderecoViewModel);
+            await _fornecedorService.AtualizarEndereco(endereco);
+
+            return CustomResponse(enderecoViewModel);
         }
 
         [HttpDelete("{id:guid}")]
         public async Task<ActionResult<FornecedorViewModel>> Excluir(Guid id)
         {
-            var fornecedor = await FornecedorEndereco(id);
+            var fornecedorViewModel = await FornecedorEndereco(id);
 
-            if (fornecedor == null) return NotFound();
+            if (fornecedorViewModel == null) return NotFound();
 
-            var result = await _fornecedorService.Remover(id);
+            await _fornecedorService.Remover(id);
 
-            if (!result) return BadRequest();
-
-            return Ok();
+            return CustomResponse(fornecedorViewModel);
         }
 
         private async Task<FornecedorViewModel> FornecedorProdutosEndereco(Guid id)
