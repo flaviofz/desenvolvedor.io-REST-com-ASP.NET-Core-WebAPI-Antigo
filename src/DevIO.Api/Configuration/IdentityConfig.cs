@@ -1,4 +1,5 @@
 using DevIO.Api.Data;
+using DevIO.Api.Extensions;
 using DevIO.Data.Context;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,7 @@ namespace DevIO.Api.Configuration
             services.AddDefaultIdentity<IdentityUser>()
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
+                .AddErrorDescriber<IdentityMensagensPortugues>() // Adicionando a tradução para os erros do identity
                 .AddDefaultTokenProviders(); // Token para reset de senha ou identificação por e-mail
 
             return services;
