@@ -1,8 +1,14 @@
+using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
 using System.Threading.Tasks;
+using DevIO.Api.Extensions;
 using DevIO.Api.ViewModels;
 using DevIO.Business.Intefaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace DevIO.Api.Controllers
 {
@@ -11,15 +17,18 @@ namespace DevIO.Api.Controllers
     {
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly AppSettings _appSettings;
 
         public AuthController(
             INotificador notificador, 
             SignInManager<IdentityUser> signInManager, 
-            UserManager<IdentityUser> userManager
+            UserManager<IdentityUser> userManager,
+            IOptions<AppSettings> appSettings // Server para pegar dados que servem como parâmetros
         ) : base(notificador)
         {
             _signInManager = signInManager;
             _userManager = userManager;
+            _appSettings = appSettings.Value;
         }
 
         [HttpPost("nova-conta")]
@@ -40,10 +49,10 @@ namespace DevIO.Api.Controllers
                 identityUser, 
                 registerUserViewModel.ConfirmPassword // é criptografado sempre | mandar de forma separada
             );
-            if ( result.Succeeded)
+            if (result.Succeeded)
             {
                 await _signInManager.SignInAsync(identityUser, false); // false = persisteente. Se vai lembrar dele no próximo login
-                return CustomResponse(registerUserViewModel);
+                return CustomResponse(GerarJwt());
             }
 
             foreach (var error in result.Errors)            
@@ -67,7 +76,7 @@ namespace DevIO.Api.Controllers
             );
 
             if (result.Succeeded)            
-                return CustomResponse(loginUserViewModel);            
+                return CustomResponse(GerarJwt());            
             if (result.IsLockedOut)
             {
                 NotificarErro("Usuário temporariamente bloqueado por tentativas inválidas");
@@ -76,6 +85,22 @@ namespace DevIO.Api.Controllers
 
             NotificarErro("Usuário ou senha incorretos");
             return CustomResponse(loginUserViewModel);
+        }
+
+        private string GerarJwt()
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_appSettings.Segredo);
+            var token = tokenHandler.CreateToken(new SecurityTokenDescriptor
+            {
+                Issuer = _appSettings.Emissor,
+                Audience = _appSettings.ValidoEm,
+                Expires = DateTime.UtcNow.AddHours(_appSettings.ExpiracaoHoras),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            });
+
+            var encodedToken = tokenHandler.WriteToken(token); // Para ficar compatível com o padrão da WEb
+            return encodedToken;
         }
     }
 }
