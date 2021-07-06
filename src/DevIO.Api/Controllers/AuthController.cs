@@ -1,5 +1,7 @@
 using System;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using DevIO.Api.Extensions;
@@ -52,7 +54,7 @@ namespace DevIO.Api.Controllers
             if (result.Succeeded)
             {
                 await _signInManager.SignInAsync(identityUser, false); // false = persisteente. Se vai lembrar dele no próximo login
-                return CustomResponse(GerarJwt());
+                return CustomResponse(await GerarJwt(registerUserViewModel.Email));
             }
 
             foreach (var error in result.Errors)            
@@ -76,7 +78,7 @@ namespace DevIO.Api.Controllers
             );
 
             if (result.Succeeded)            
-                return CustomResponse(GerarJwt());            
+                return CustomResponse(await GerarJwt(loginUserViewModel.Email));            
             if (result.IsLockedOut)
             {
                 NotificarErro("Usuário temporariamente bloqueado por tentativas inválidas");
@@ -87,20 +89,56 @@ namespace DevIO.Api.Controllers
             return CustomResponse(loginUserViewModel);
         }
 
-        private string GerarJwt()
+        private async Task<string> GerarJwt(string email)
         {
+            var user = await _userManager.FindByEmailAsync(email);
+            var claims = await _userManager.GetClaimsAsync(user);
+            var roles = await _userManager.GetRolesAsync(user);
+
+            claims.Add(new Claim(JwtRegisteredClaimNames.Sub, user.Id));
+            claims.Add(new Claim(JwtRegisteredClaimNames.Email, user.Email));
+            claims.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
+            claims.Add(new Claim(JwtRegisteredClaimNames.Nbf, ToUnixEpochDate(DateTime.UtcNow).ToString()));
+            claims.Add(new Claim(JwtRegisteredClaimNames.Iat, ToUnixEpochDate(DateTime.UtcNow).ToString(), ClaimValueTypes.Integer64));            
+
+            foreach (var userRole in roles)
+            {
+                claims.Add(new Claim("role", userRole));
+            }
+
+            var identityClaims = new ClaimsIdentity();
+            identityClaims.AddClaims(claims);
+
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_appSettings.Segredo);
             var token = tokenHandler.CreateToken(new SecurityTokenDescriptor
             {
                 Issuer = _appSettings.Emissor,
                 Audience = _appSettings.ValidoEm,
+                Subject = identityClaims,
                 Expires = DateTime.UtcNow.AddHours(_appSettings.ExpiracaoHoras),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             });
 
             var encodedToken = tokenHandler.WriteToken(token); // Para ficar compatível com o padrão da WEb
+
+            // var response = new LoginResponseViewModel
+            // {
+            //     AccessToken = encodedToken,
+            //     ExpiresIn = TimeSpan.FromHours(_appSettings.ExpiracaoHoras).TotalSeconds,
+            //     UserToken = new UserTokenViewModel
+            //     {
+            //         Id = user.Id,
+            //         Email = user.Email,
+            //         Claims = claims.Select(c=> new ClaimViewModel{ Type = c.Type, Value = c.Value})
+            //     }
+            // };
+            
             return encodedToken;
         }
+
+
+        private static long ToUnixEpochDate(DateTime date)
+            => (long)Math.Round((date.ToUniversalTime() - new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero)).TotalSeconds);
     }
 }
