@@ -49,13 +49,16 @@ namespace DevIO.Api
         {
             if (env.IsDevelopment())
             {
+                app.UseCors("Development");
                 app.UseDeveloperExceptionPage();
-            }      
+            }
             else
             {
-                // Salva e estabelece que a comunicação será via hsts
-                app.UseHsts();
-            }      
+                app.UseCors("Production"); // Usar apenas nas demos => Configuração Ideal: Production                
+                app.UseHsts(); // Salva estabelece que a comunicação será via hsts
+            }
+                
+    
 
             app.UseAuthentication(); // Sempre vir antes da configuração do MVC
             app.UseMvcConfiguration();
