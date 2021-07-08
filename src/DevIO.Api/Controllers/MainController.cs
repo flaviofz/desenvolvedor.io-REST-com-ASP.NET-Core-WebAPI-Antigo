@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using DevIO.Business.Intefaces;
 using DevIO.Business.Notificacoes;
@@ -9,11 +10,24 @@ namespace DevIO.Api.Controllers
     [ApiController]
     public abstract class MainController : ControllerBase
     {
-        protected readonly INotificador _notificador;
+        private readonly INotificador _notificador;
+        protected readonly IUser _appUser;
 
-        protected MainController(INotificador notificador)
+        protected Guid UsuarioId { get; set; }
+        protected bool UsuarioAautenticado { get; set; }
+
+        protected MainController(
+            INotificador notificador,
+            IUser appUser)
         {
             _notificador = notificador;
+            _appUser = appUser;
+
+            if(_appUser.IsAuthenticated())
+            {
+                UsuarioId = _appUser.GetUserId();
+                UsuarioAautenticado = true;
+            }
         }
 
         protected bool OperacaoValida()

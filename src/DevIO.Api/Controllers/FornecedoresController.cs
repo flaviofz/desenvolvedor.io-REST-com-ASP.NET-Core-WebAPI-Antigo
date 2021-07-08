@@ -25,7 +25,8 @@ namespace DevIO.Api.Controllers
             INotificador notificador,
             IFornecedorRepository fornecedorRespository,
             IEnderecoRepository enderecoRespository,
-            IFornecedorService fornecedorService) : base(notificador)
+            IFornecedorService fornecedorService,
+            IUser user) : base(notificador, user)
         {
             _mapper = mapper;
             _fornecedorRespository = fornecedorRespository;
@@ -61,6 +62,18 @@ namespace DevIO.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<FornecedorViewModel>> Adicionar(FornecedorViewModel fornecedorViewModel)
         {
+            // Maneira comum para pegar o nome do usuario / User existe na controller
+            if (User.Identity.IsAuthenticated)
+            {
+                var userName = User.Identity.Name;
+            }  
+
+            // Pegar o Id de uma maneira mais "fácil"
+            if (UsuarioAautenticado)
+            {
+                var userId = UsuarioId;
+            }
+
             if(!ModelState.IsValid) return CustomResponse(ModelState);
 
             await _fornecedorService.Adicionar(_mapper.Map<Fornecedor>(fornecedorViewModel));
@@ -71,7 +84,7 @@ namespace DevIO.Api.Controllers
         [ClaimsAuthorize("Fornecedor","Atualizar")]
         [HttpPut("{id:guid}")] // A partir do 2.1 já entende que está recebendo da rota e do body
         public async Task<ActionResult<FornecedorViewModel>> Atualizar(Guid id, FornecedorViewModel fornecedorViewModel)
-        {
+        {            
             if (id != fornecedorViewModel.Id)
             {
                 NotificarErro("O Id da query é diferente do Id do body");
