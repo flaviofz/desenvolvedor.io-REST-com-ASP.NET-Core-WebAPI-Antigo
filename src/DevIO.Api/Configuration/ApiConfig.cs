@@ -22,7 +22,8 @@ namespace DevIO.Api.Configuration
 
         public static IApplicationBuilder UseMvcConfiguration(this IApplicationBuilder app)
         {
-            app.UseHttpsRedirection();
+            // redireciona internamente
+            app.UseHttpsRedirection(); 
             app.UseRouting();
             app.UseAuthorization();
             app.UseAuthentication();

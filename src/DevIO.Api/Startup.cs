@@ -50,7 +50,12 @@ namespace DevIO.Api
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-            }            
+            }      
+            else
+            {
+                // Salva e estabelece que a comunicação será via hsts
+                app.UseHsts();
+            }      
 
             app.UseAuthentication(); // Sempre vir antes da configuração do MVC
             app.UseMvcConfiguration();
