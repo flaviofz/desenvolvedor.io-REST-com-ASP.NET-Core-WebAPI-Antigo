@@ -51,11 +51,12 @@ namespace DevIO.Api.Configuration
 
         public static IApplicationBuilder UseSwaggerConfig(this IApplicationBuilder app, IApiVersionDescriptionProvider provider)
         {
-            //app.UseMiddleware<SwaggerAuthorizedMiddleware>();
+            //app.UseMiddleware<SwaggerAuthorizedMiddleware>(); // Restringindo acesso ao Swagger
             app.UseSwagger();
             app.UseSwaggerUI(
                 options =>
                 {
+                    // Colocando no list as versões que a aplicação tenha
                     foreach (var description in provider.ApiVersionDescriptions)
                     {
                         options.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", description.GroupName.ToUpperInvariant());
@@ -138,6 +139,7 @@ namespace DevIO.Api.Configuration
         }
     }
 
+    // Criando Middleware para restringir acesso das pessoas ao seu swagger
     public class SwaggerAuthorizedMiddleware
     {
         private readonly RequestDelegate _next;
@@ -149,6 +151,7 @@ namespace DevIO.Api.Configuration
 
         public async Task Invoke(HttpContext context)
         {
+            // Caso tenha swagger na url e não estiver autenticado não permite
             if (context.Request.Path.StartsWithSegments("/swagger")
                 && !context.User.Identity.IsAuthenticated)
             {
