@@ -56,9 +56,7 @@ namespace DevIO.Api
             {
                 app.UseCors("Production"); // Usar apenas nas demos => Configuração Ideal: Production                
                 app.UseHsts(); // Salva estabelece que a comunicação será via hsts
-            }
-                
-    
+            }                    
 
             app.UseAuthentication(); // Sempre vir antes da configuração do MVC
             app.UseMvcConfiguration();

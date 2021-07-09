@@ -10,11 +10,23 @@ namespace DevIO.Api.Configuration
         {
             services.AddControllers();
 
+            services.AddApiVersioning(options =>
+            {
+                options.AssumeDefaultVersionWhenUnspecified = true; // quando não for especificado pega a default
+                options.DefaultApiVersion = new ApiVersion(1, 0); // setando a default
+                options.ReportApiVersions = true; // fala para o browser se a que está usando é obsoleta
+            });
+
+            services.AddVersionedApiExplorer(options =>
+            {
+                options.GroupNameFormat = "'v'VVV"; // aceita três parâmetros (major, manor e pacth)
+                options.SubstituteApiVersionInUrl = true; // se tiver uma rota padrão ele substitui pela default, substituindo na url
+            });
+
             // Desabilita a validação automática da ModelState pelo .Net
             services.Configure<ApiBehaviorOptions>(options =>
             {
                 options.SuppressModelStateInvalidFilter = true;
-
             });
 
             services.AddCors(options =>
