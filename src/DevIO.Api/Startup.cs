@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using DevIO.Api.Configuration;
 using DevIO.Data.Context;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 
 namespace DevIO.Api
 {
@@ -41,11 +42,17 @@ namespace DevIO.Api
 
             services.WebApiConfig();
 
+            services.AddSwaggerConfig();
+
             services.ResolveDependencies();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(
+            IApplicationBuilder app, 
+            IWebHostEnvironment env,
+            IApiVersionDescriptionProvider provider
+        )
         {
             if (env.IsDevelopment())
             {
@@ -56,7 +63,9 @@ namespace DevIO.Api
             {
                 app.UseCors("Production"); // Usar apenas nas demos => Configuração Ideal: Production                
                 app.UseHsts(); // Salva estabelece que a comunicação será via hsts
-            }                    
+            }           
+
+            app.UseSwaggerConfig(provider);   
 
             app.UseAuthentication(); // Sempre vir antes da configuração do MVC
             app.UseMvcConfiguration();
