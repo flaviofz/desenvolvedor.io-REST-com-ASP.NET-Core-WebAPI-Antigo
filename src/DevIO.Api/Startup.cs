@@ -8,6 +8,8 @@ using DevIO.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using DevIO.Api.Extensions;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using HealthChecks.UI.Client;
 
 namespace DevIO.Api
 {
@@ -45,7 +47,7 @@ namespace DevIO.Api
 
             services.AddSwaggerConfig();
 
-            services.AddHealthChecks();
+            services.AddLoggingConfig(Configuration);
 
             services.ResolveDependencies();
         }
@@ -72,11 +74,11 @@ namespace DevIO.Api
 
             app.UseAuthentication(); // Sempre vir antes da configuração do MVC
 
+            app.UseLoggingConfiguration();
+
             app.UseMiddleware<ExceptionMiddleware>();
 
             app.UseMvcConfiguration();
-
-            app.UseHealthChecks("/hc");
         }
     }
 }
