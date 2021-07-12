@@ -10,6 +10,7 @@ using DevIO.Api.ViewModels;
 using DevIO.Business.Intefaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -23,18 +24,21 @@ namespace DevIO.Api.V1.Controllers
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly AppSettings _appSettings;
+        private readonly ILogger _logger;
 
         public AuthController(
             INotificador notificador, 
             SignInManager<IdentityUser> signInManager, 
             UserManager<IdentityUser> userManager,
             IOptions<AppSettings> appSettings, // Server para pegar dados que servem como parâmetros
-            IUser user
+            IUser user,
+            ILogger<AuthController> logger
         ) : base(notificador, user)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _appSettings = appSettings.Value;
+            _logger = logger;
         }
 
         [HttpPost("nova-conta")]
@@ -81,8 +85,11 @@ namespace DevIO.Api.V1.Controllers
                 lockoutOnFailure: true // Tentando mais de 5x com informações erradas o usuário será travado e só é liberado depois de X minutos
             );
 
-            if (result.Succeeded)            
-                return CustomResponse(await GerarJwt(loginUserViewModel.Email));            
+            if (result.Succeeded)   
+            {         
+                _logger.LogInformation($"Usuario {loginUserViewModel.Email} logado com sucesso");
+                return CustomResponse(await GerarJwt(loginUserViewModel.Email));   
+            }         
             if (result.IsLockedOut)
             {
                 NotificarErro("Usuário temporariamente bloqueado por tentativas inválidas");

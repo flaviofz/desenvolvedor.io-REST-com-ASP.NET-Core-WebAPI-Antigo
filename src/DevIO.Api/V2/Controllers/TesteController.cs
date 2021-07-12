@@ -14,5 +14,8 @@ namespace DevIO.Api.V2.Controllers
 
         [HttpGet]
         public string Valor() => "Sou a V2";        
+
+        [HttpGet("Teste")]
+        public string ValorException() => throw new System.Exception("Error");
     }
 }
